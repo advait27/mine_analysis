@@ -3,14 +3,13 @@ from tkinter import messagebox, simpledialog
 from game import MinesweeperGUI
 
 # Try to import the analytics module
-# This handles the case where matplotlib/scipy are not installed
 try:
     import analytics
     ANALYTICS_ENABLED = True
 except ImportError as e:
     print(f"Could not import analytics: {e}")
     print("Analytics feature will be disabled.")
-    print("Please install 'matplotlib' and 'scipy' to enable it.")
+    print("Please install 'matplotlib', 'scipy', 'plotly', and 'pandas' to enable it.")
     ANALYTICS_ENABLED = False
 
 class MainMenu:
@@ -44,7 +43,6 @@ class MainMenu:
         expert_button.pack(pady=5)
 
         # --- Analytics Button ---
-        # MODIFIED: Disable button if import failed
         analytics_button = tk.Button(button_frame, text="Run Analytics", 
                                      width=25, command=self.run_analytics_dialog)
         analytics_button.pack(pady=15)
@@ -62,19 +60,15 @@ class MainMenu:
         game_window.destroy()
         self.root.deiconify()
 
-    # --- ADDED: New dialog for analytics ---
     def run_analytics_dialog(self):
         """
         Shows a popup to get analytics settings from the user.
         """
-        # Create a new small window for the dialog
         dialog = tk.Toplevel(self.root)
         dialog.title("Analytics Settings")
         dialog.geometry("300x250")
         dialog.resizable(False, False)
-        
-        # Make this window modal (blocks main menu)
-        dialog.grab_set()
+        dialog.grab_set() # Make window modal
         
         tk.Label(dialog, text="Board Configuration").pack(pady=5)
         
@@ -99,31 +93,37 @@ class MainMenu:
         
         def on_run():
             try:
-                # Get the selected config
                 h, w, m = configs[config_var.get()]
-                # Get the number of boards, ensure it's an integer
                 n = int(n_boards_entry.get())
                 
                 if n <= 0:
                     raise ValueError("Number of boards must be > 0")
                 
-                # Close the dialog
                 dialog.destroy()
-                
-                # Hide main menu
                 self.root.withdraw()
                 
-                # Show a "working" message
                 messagebox.showinfo("Running Analytics",
                                     f"Starting analytics for {n} boards.\n"
                                     "This may take a moment.\n"
-                                    "The plots will appear when finished.",
+                                    "Plots will appear when finished.",
                                     parent=self.root)
                 
-                # Run the analytics function
+                # --- Run Both Plotting Functions ---
+                
+                # 1. Run the original static plots
+                print("Running static plots...")
                 analytics.plot_analytics(h, w, m, n)
                 
-                # Show main menu again
+                # 2. Run the new interactive plots
+                print("Running interactive plots...")
+                analytics.plot_interactive_analytics(h, w, m, n)
+                
+                # --- Show Final Message ---
+                messagebox.showinfo("Analytics Complete",
+                                    "Static plots shown.\n"
+                                    "Interactive plots saved to HTML files in the program folder.",
+                                    parent=self.root)
+                
                 self.root.deiconify()
                 
             except ValueError:
@@ -132,12 +132,11 @@ class MainMenu:
                                      parent=dialog)
             except Exception as e:
                 messagebox.showerror("Error", f"An error occurred: {e}", parent=dialog)
-                self.root.deiconify() # Ensure main menu comes back
+                self.root.deiconify()
 
         # --- Run Button ---
         run_button = tk.Button(dialog, text="Run", command=on_run)
         run_button.pack(pady=20)
-
 
 # --- Main code to run the application ---
 if __name__ == "__main__":
