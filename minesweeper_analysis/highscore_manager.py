@@ -6,9 +6,8 @@ MAX_SCORES = 10
 
 def load_scores():
     """
-    Loads highscores from the JSON file with strict error checking.
-    If the file is corrupted or in the wrong format (like a list),
-    it automatically resets to an empty dictionary to prevent crashes.
+    Loads highscores from the JSON file.
+    Safeguards against file corruption or incorrect data types.
     """
     if not os.path.exists(HIGHSCORE_FILE):
         return {}
@@ -16,16 +15,11 @@ def load_scores():
     try:
         with open(HIGHSCORE_FILE, 'r') as f:
             data = json.load(f)
-            
-            # --- CRITICAL FIX FOR ATTRIBUTE ERROR ---
-            # If the file contains a list [] instead of a dict {}, 
-            # standard code crashes. This detects and fixes it.
+            # CRITICAL CHECK: Ensure data is actually a dictionary
             if not isinstance(data, dict):
-                print(f"Warning: {HIGHSCORE_FILE} was the wrong format. Resetting it.")
+                print("Warning: Highscore file format incorrect. Resetting.")
                 return {}
-                
             return data
-            
     except (json.JSONDecodeError, IOError):
         print("Warning: Highscore file corrupted. Starting fresh.")
         return {}
@@ -41,11 +35,9 @@ def save_scores(scores):
 def get_scores(config_key):
     """
     Gets the list of highscores for a specific board configuration.
-    Safe to call even if the key doesn't exist yet.
     """
     scores = load_scores()
-    # This .get() is what was crashing before if scores was a list.
-    # load_scores() above guarantees 'scores' is now a dict.
+    # Ensure we return a list, even if the key is missing
     return scores.get(config_key, [])
 
 def add_score(config_key, name, time):
@@ -54,10 +46,8 @@ def add_score(config_key, name, time):
     """
     scores = load_scores()
     
-    # Get existing list or create new one if missing
+    # Get existing list or create new one
     score_list = scores.get(config_key, [])
-    
-    # Double check that score_list is actually a list
     if not isinstance(score_list, list):
         score_list = []
 
@@ -78,9 +68,17 @@ def is_highscore(config_key, time):
     """
     score_list = get_scores(config_key)
     
-    # If we have fewer than 10 scores, it's automatically a highscore
     if len(score_list) < MAX_SCORES:
         return True
     
-    # Otherwise, check if it's faster than the slowest (last) score
+    # Compare with the worst (last) score in the list
     return time < score_list[-1][1]
+
+# --- TEST BLOCK ---
+# You can run this file directly to verify it works
+if __name__ == "__main__":
+    print("Testing Highscore Manager...")
+    # Force a save to ensure file creation works
+    add_score("test_9x9x10", "TestPlayer", 999)
+    print("Scores:", get_scores("test_9x9x10"))
+    print("Manager seems to be working.")

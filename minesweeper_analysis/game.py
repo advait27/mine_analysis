@@ -1,9 +1,9 @@
 import tkinter as tk
 from tkinter import messagebox
-from tkinter import simpledialog  # <-- ADDED: To ask for player's name
+from tkinter import simpledialog  
 from board import Board
 import numpy as np
-import highscore_manager as hs    # <-- ADDED: Our new highscore module
+import highscore_manager as hs   
 
 class MinesweeperGUI:
     
@@ -12,8 +12,7 @@ class MinesweeperGUI:
         self.height = height
         self.width = width
         self.num_mines = num_mines
-        
-        # <-- ADDED: A unique key for this board configuration
+    
         self.config_key = f"{height}x{width}x{num_mines}"
 
         self.color_map = {
@@ -42,7 +41,6 @@ class MinesweeperGUI:
                                     font=("Arial", 14, "bold"), width=9)
         self.timer_label.pack(side=tk.LEFT, padx=10)
 
-        # <-- ADDED: Highscore view button
         self.highscore_button = tk.Button(self.header_frame, text="🏆", font=("Arial", 16), 
                                           width=3, command=self.show_highscores)
         self.highscore_button.pack(side=tk.LEFT, padx=10)
@@ -75,7 +73,8 @@ class MinesweeperGUI:
                 btn = tk.Button(self.grid_frame, width=2, height=1,
                                 relief=tk.RAISED, bg="#ddd")
                 btn.bind("<Button-1>", lambda e, r=r, c=c: self.on_left_click(r, c))
-                btn.bind("<Button-3>", lambda e, r=r, c=c: self.on_right_click(r, c))
+                btn.bind("<Button-3>", lambda e, r=r, c=c: self.on_right_click(r, c, e))
+                btn.bind("<Button-2>", lambda e, r=r, c=c: self.on_right_click(r, c, e), add="+")
                 btn.grid(row=r, column=c)
                 row_list.append(btn)
             self.buttons.append(row_list)
@@ -101,19 +100,29 @@ class MinesweeperGUI:
             self.reveal_cell(r, c)
             self.check_win()
 
-    def on_right_click(self, r, c):
+    def on_right_click(self, r, c, event=None):
+        """
+        Handles the right-click event to flag/unflag a cell.
+        r, c: coordinates of the button.
+        event: The event object (required by bind).
+        """
+        
         if self.game_over:
             return
         btn = self.buttons[r][c]
+        # If the cell is already revealed (>= 0), stop.
         if self.board.player_view[r, c] >= 0:
             return
+        if self.board.player_view[r, c] >= 0:
+            return
+        # If the cell is HIDDEN (-1) -> Flag it
         if self.board.player_view[r, c] == -1:
             self.board.player_view[r, c] = -2
-            btn.config(text="🚩", bg="#ccc")
+            btn.config(text="🚩",fg="red", bg="light yellow" )
             self.mines_left -= 1
         elif self.board.player_view[r, c] == -2:
             self.board.player_view[r, c] = -1
-            btn.config(text="", bg="#ddd")
+            btn.config(text="",fg="black", bg="#ddd")
             self.mines_left += 1
         self.mine_label.config(text=f"Mines: {self.mines_left:03d}")
 
@@ -139,7 +148,9 @@ class MinesweeperGUI:
     def update_button_appearance(self, r, c):
         val = self.board.player_view[r, c]
         btn = self.buttons[r][c]
-        btn.config(relief=tk.SUNKEN, bg="white")
+        
+        btn.config(relief=tk.SUNKEN, bg="light gray", state=tk.DISABLED) 
+       
         if val == 0:
             btn.config(text="")
         elif val > 0:
@@ -176,11 +187,9 @@ class MinesweeperGUI:
                 for c in range(self.width):
                     if self.board.board[r, c] == -9:
                         self.buttons[r][c].config(text="🚩", bg="#ccc")
-            
-            # <-- MODIFIED: Call highscore logic
+           
             self.handle_win_highscore()
 
-    # --- ADDED: New method to handle highscore logic ---
     def handle_win_highscore(self):
         """
         Called on a win. Checks if the time is a highscore,
@@ -207,7 +216,6 @@ class MinesweeperGUI:
             # Not a highscore
             messagebox.showinfo("You Win!", f"Congratulations!\nYour time: {self.timer_seconds}s")
             
-    # --- ADDED: New method to show highscore popup ---
     def show_highscores(self, show_message_after=None):
         """
         Displays a messagebox with the highscores for the
